@@ -1,0 +1,28 @@
+{
+  "name": "translation-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "dev": "node --watch --env-file=.env src/index.js",
+    "start": "node src/index.js",
+    "enqueue": "node --env-file=.env scripts/enqueue.js"
+  },
+  "dependencies": {
+    "bullmq": "^5.12.0",
+    "docx": "^8.5.0",
+    "ioredis": "^5.4.1",
+    "mammoth": "^1.8.0",
+    "minio": "^8.0.1",
+    "mongodb": "^6.8.0",
+    "openai": "^4.55.0",
+    "pdf-parse": "^1.1.1",
+    "pdfkit": "^0.15.0",
+    "pino": "^9.3.2",
+    "pino-pretty": "^11.2.2",
+    "zod": "^3.23.8"
+  }
+}
