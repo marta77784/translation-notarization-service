@@ -18,7 +18,10 @@ Build a production-quality Node.js worker that consumes jobs from a BullMQ queue
 - BullMQ on top of Redis for the queue.
 - MinIO SDK for file storage.
 - MongoDB native driver for status updates.
-- OpenAI SDK for translation (`gpt-4o-mini` by default).
+- OpenAI-compatible LLM API for translation. Any provider exposing the OpenAI
+  Chat Completions interface works (OpenAI, Groq, local Ollama, etc.) — the
+  endpoint and model are selected via env vars. The OpenAI SDK is used as the
+  client.
 - Pino for structured logging.
 - Zod for env and job payload validation.
 
@@ -65,7 +68,11 @@ Always also set `updatedAt: new Date()`.
    - DOCX → use `mammoth` (`extractRawText`).
    - TXT → read as UTF-8.
 5. Split the text into chunks on paragraph boundaries, each up to ~2500 estimated tokens (rough estimate: chars / 4). If a single paragraph is too large, fall back to splitting by sentence.
-6. Translate each chunk with OpenAI Chat Completions. Use a strict system prompt for legal/official document translation: literal accuracy, preserve paragraph structure, no markdown, no commentary, transliterate proper nouns, preserve numbers and dates. Temperature low (~0.1).
+6. Translate each chunk via the configured LLM provider's Chat Completions
+   endpoint. Use a strict system prompt for legal/official document
+   translation: literal accuracy, preserve paragraph structure, no markdown,
+   no commentary, transliterate proper nouns, preserve numbers and dates.
+   Temperature low (~0.1).
 7. After each chunk, update progress in MongoDB and via `job.updateProgress()`. Translation should map to progress 10 → 90.
 8. Recombine translated chunks with `\n\n`.
 9. Compose the output file:
@@ -79,10 +86,10 @@ Always also set `updatedAt: new Date()`.
 
 Use two custom error classes:
 
-- `PermanentError` — do not retry (bad file, unsupported format, invalid payload, OpenAI auth error). On `failed` event, call `job.discard()` to skip remaining attempts.
-- `TransientError` — retry with exponential backoff (OpenAI 429 or 5xx, network errors, empty completion).
+- `PermanentError` — do not retry (bad file, unsupported format, invalid payload, LLM auth error). On `failed` event, call `job.discard()` to skip remaining attempts.
+- `TransientError` — retry with exponential backoff (LLM 429 or 5xx, network errors, empty completion).
 
-Classify OpenAI errors by HTTP status:
+Classify LLM provider errors by HTTP status:
 - 400, 404 → permanent
 - 401, 403 → permanent (config issue, retry pointless)
 - 429, 5xx → transient
@@ -93,7 +100,9 @@ Backoff: `5_000 * 3^(attempts-1)`, capped at 5 minutes.
 
 ## Configuration
 
-All config from env vars, validated via Zod at startup. Required: `OPENAI_API_KEY`, `REDIS_URL`, `MONGO_URL`, `MONGO_DB`, MinIO endpoint/credentials/bucket names. Optional: `OPENAI_MODEL` (default `gpt-4o-mini`), `WORKER_CONCURRENCY` (default 2), `LOG_LEVEL` (default `info`).
+All config from env vars, validated via Zod at startup. Required: `LLM_API_KEY`, `REDIS_URL`, `MONGO_URL`, `MONGO_DB`, MinIO endpoint/credentials/bucket names. Optional: `LLM_BASE_URL` (default `https://api.openai.com/v1`), `LLM_MODEL` (default `gpt-4o-mini`), `WORKER_CONCURRENCY` (default 2), `LOG_LEVEL` (default `info`).
+
+The LLM client is constructed as `new OpenAI({ apiKey: LLM_API_KEY, baseURL: LLM_BASE_URL })`. Schema defaults point at OpenAI; `.env.example` ships with Groq for free local development.
 
 If env validation fails, log the missing fields and exit with code 1.
 
