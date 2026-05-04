@@ -35,6 +35,35 @@ The worker connects to:
 
 MinIO console: <http://localhost:9001> (user `minioadmin` / `minioadmin`).
 
+## Enqueueing test jobs
+
+The worker is normally fed by the upload API service. For autonomous local
+testing, `scripts/enqueue.js` simulates that producer: it uploads a fixture
+file to MinIO, upserts a `documents` row in Mongo, and enqueues a job using
+the shared producer contract from `src/queue.js`.
+
+Test cases live in `scripts/enqueue.config.json`. Drop fixture files into
+`scripts/fixtures/` (a `sample-ru.txt` is included to start with).
+
+```bash
+npm run enqueue                       # list available cases
+npm run enqueue -- ru-txt-to-en-txt   # run a specific case
+```
+
+Each case generates a fresh `documentId` (an ObjectId) by default — copy it
+from the log to inspect Mongo (`db.documents.findOne({_id: ObjectId('...')})`)
+or MinIO (`translations/<documentId>/translated.<ext>`).
+
+## Docker
+
+```bash
+docker build -t translation-worker .
+docker run --rm --env-file .env translation-worker
+```
+
+The image runs as the `node` user, includes only production dependencies, and
+ships only `src/` (no scripts, no docs).
+
 ## Configuration
 
 All config comes from environment variables; see `.env.example` for the full
@@ -47,10 +76,15 @@ exits with code 1.
 src/
   index.js              # entry: BullMQ Worker setup, graceful shutdown
   config.js             # env loading + Zod validation
+  queue.js              # shared queue/job-options contract for producers
   processor.js          # main job orchestrator
   extractors/           # text extraction by mime type
   translator/           # chunking + LLM calls
   composers/            # output file composition
   storage/              # MinIO + Mongo clients
   lib/                  # logger, custom errors
+scripts/
+  enqueue.js            # manual job producer for autonomous testing
+  enqueue.config.json   # named test cases
+  fixtures/             # source documents referenced by cases
 ```

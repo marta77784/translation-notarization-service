@@ -46,6 +46,46 @@ The worker listens on a BullMQ queue named `translation`. Each job has this payl
 - `sourceMimeType` is one of: `application/pdf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `text/plain`.
 - `sourceLang` and `targetLang` are `"ru"` or `"en"`. They must differ.
 - `outputFormat` is one of `"pdf"`, `"docx"`, `"txt"`.
+- `targetLang === "ru" && outputFormat === "pdf"` is rejected as a permanent error in MVP — the bundled PDF font does not include Cyrillic glyphs. Use DOCX for Russian output until a Unicode TTF is added (see TODO in `src/composers/pdf.js`).
+
+## Producer contract
+
+Anything that enqueues translation jobs (the upload API service, the test
+helper at `scripts/enqueue.js`, etc.) must follow these rules. The shared
+constants live in `src/queue.js` and should be imported by JS producers.
+
+**Ordering invariant.** Insert the document into MongoDB *before* enqueueing
+the job. The worker calls `updateOne` (no upsert) on `markTranslating`, so a
+job that arrives before the document exists will silently no-op the status
+update and produce a translation file in MinIO with no Mongo trace.
+
+**Queue + job options.** Producers must use the queue name `translation` and
+the following BullMQ `add()` options:
+
+```js
+import { Queue } from 'bullmq';
+import { QUEUE_NAME, JOB_OPTIONS } from './queue.js';
+
+const queue = new Queue(QUEUE_NAME, { connection });
+await queue.add(
+  'translate',
+  payload,
+  {
+    ...JOB_OPTIONS,            // attempts: 5, backoff: { type: 'custom' }, retention defaults
+    jobId: payload.documentId, // idempotency: same document → same jobId
+  },
+);
+```
+
+- `jobId: documentId` is required for idempotency. BullMQ will silently drop a
+  duplicate `add` with the same `jobId`, so re-enqueueing the same document
+  never produces a duplicate translation.
+- `backoff: { type: 'custom' }` opts the job into the worker's custom backoff
+  strategy (`5_000 * 3^(attempts-1)`, capped at 5 minutes). Without this, the
+  job will not back off correctly between retries.
+- `attempts` should match `MAX_ATTEMPTS` from `src/queue.js` (currently `5`).
+- The `name` argument to `queue.add` (here `'translate'`) is informational —
+  the worker dispatches by queue, not by job name.
 
 ## MongoDB contract
 

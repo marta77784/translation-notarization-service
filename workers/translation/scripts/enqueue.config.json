@@ -1,0 +1,60 @@
+{
+  "cases": {
+    "ru-txt-to-en-txt": {
+      "documentId": "auto",
+      "sourceFile": "fixtures/sample-ru.txt",
+      "sourceMimeType": "text/plain",
+      "sourceLang": "ru",
+      "targetLang": "en",
+      "outputFormat": "txt"
+    },
+    "ru-pdf-to-en-pdf": {
+      "documentId": "auto",
+      "sourceFile": "fixtures/sample-ru.pdf",
+      "sourceMimeType": "application/pdf",
+      "sourceLang": "ru",
+      "targetLang": "en",
+      "outputFormat": "pdf"
+    },
+    "ru-docx-to-en-docx": {
+      "documentId": "auto",
+      "sourceFile": "fixtures/sample-ru.docx",
+      "sourceMimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "sourceLang": "ru",
+      "targetLang": "en",
+      "outputFormat": "docx"
+    },
+    "ru-pdf-to-en-docx": {
+      "documentId": "auto",
+      "sourceFile": "fixtures/sample-ru.pdf",
+      "sourceMimeType": "application/pdf",
+      "sourceLang": "ru",
+      "targetLang": "en",
+      "outputFormat": "docx"
+    },
+    "rejected-en-to-ru-pdf": {
+      "documentId": "auto",
+      "sourceFile": "fixtures/sample-en.txt",
+      "sourceMimeType": "text/plain",
+      "sourceLang": "en",
+      "targetLang": "ru",
+      "outputFormat": "pdf"
+    },
+    "broken-pdf": {
+      "documentId": "auto",
+      "sourceFile": "fixtures/broken.pdf",
+      "sourceMimeType": "application/pdf",
+      "sourceLang": "ru",
+      "targetLang": "en",
+      "outputFormat": "txt"
+    },
+    "missing-source": {
+      "documentId": "auto",
+      "sourceFileKey": "uploads/does-not-exist.pdf",
+      "sourceMimeType": "application/pdf",
+      "sourceLang": "ru",
+      "targetLang": "en",
+      "outputFormat": "txt"
+    }
+  }
+}

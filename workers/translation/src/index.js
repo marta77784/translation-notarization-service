@@ -5,12 +5,11 @@ import { logger } from './lib/logger.js';
 import { ensureBuckets } from './storage/minio.js';
 import { connectMongo, closeMongo } from './storage/mongo.js';
 import { processJob } from './processor.js';
-
-export const QUEUE_NAME = 'translation';
+import { QUEUE_NAME } from './queue.js';
 
 // Backoff per spec: 5_000 * 3^(attempts-1), capped at 5 minutes.
 // Producers must enqueue with `{ attempts, backoff: { type: 'custom' } }` for
-// this strategy to apply.
+// this strategy to apply (see src/queue.js).
 const BACKOFF_BASE_MS = 5_000;
 const BACKOFF_MULTIPLIER = 3;
 const BACKOFF_MAX_MS = 5 * 60 * 1000;
