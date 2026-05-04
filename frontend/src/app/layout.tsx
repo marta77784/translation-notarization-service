@@ -49,6 +49,9 @@ export default function RootLayout({
                     <a href="/dashboard" className="text-gray-600 hover:text-gray-900 text-sm">
                         My Documents
                     </a>
+                    <a href="/notary" className="text-gray-600 hover:text-gray-900 text-sm">
+                        Notary
+                    </a>
                 </nav>
             </div>
         </header>
