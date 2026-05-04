@@ -1,0 +1,127 @@
+# ============================================================
+# SECRET — хранит логин и пароль от MinIO
+# Минимум 8 символов для пароля!
+# ============================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-secret
+  namespace: default
+type: Opaque
+data:
+  # echo -n "minioadmin" | base64  →  bWluaW9hZG1pbg==
+  minio-root-user: bWluaW9hZG1pbg==
+  # echo -n "minioadmin123" | base64  →  bWluaW9hZG1pbjEyMw==
+  minio-root-password: bWluaW9hZG1pbjEyMw==
+
+---
+# ============================================================
+# DEPLOYMENT — запускает контейнер MinIO
+# MinIO хранит документы пользователей (как S3 в AWS)
+# ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          args:
+            - server
+            - /data                      # папка где хранятся файлы
+            - --console-address
+            - ":9001"                    # веб-интерфейс MinIO на порту 9001
+          ports:
+            - containerPort: 9000        # API порт (как S3)
+              name: api
+            - containerPort: 9001        # веб-консоль MinIO
+              name: console
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: minio-root-user
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: minio-root-password
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data           # сюда MinIO сохраняет файлы
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:                 # k8s проверяет что MinIO жив
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:                # k8s проверяет что MinIO готов принимать запросы
+            httpGet:
+              path: /minio/health/ready
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: minio-data
+          persistentVolumeClaim:
+            claimName: minio-pvc
+
+---
+# ============================================================
+# PVC — постоянный диск 10GB для хранения документов
+# Без этого все загруженные файлы удалятся при перезапуске!
+# ============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi   # 10GB — документы занимают больше места
+
+---
+# ============================================================
+# SERVICE для API — backend обращается к MinIO по этому адресу
+# minio-service:9000 — для загрузки/скачивания файлов
+# ============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+  namespace: default
+spec:
+  selector:
+    app: minio
+  ports:
+    - name: api
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
+    - name: console
+      protocol: TCP
+      port: 9001
+      targetPort: 9001
+  type: ClusterIP     # доступен только внутри кластера
