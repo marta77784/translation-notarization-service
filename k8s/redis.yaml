@@ -1,0 +1,80 @@
+# ============================================================
+# DEPLOYMENT — говорит k8s: запусти 1 копию Redis
+# Redis используется как очередь задач для воркеров
+# ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine   # лёгкая версия Redis
+          ports:
+            - containerPort: 6379   # стандартный порт Redis
+          command:
+            - redis-server
+            - "--save"
+            - "60"
+            - "1"          # сохранять данные на диск каждые 60 сек
+            - "--loglevel"
+            - "warning"
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data      # сюда Redis сохраняет данные
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"   # максимум 256MB памяти
+              cpu: "200m"
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-pvc
+
+---
+# ============================================================
+# PVC — постоянный диск 1GB для Redis
+# ============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi    # Redis лёгкий, 1GB хватит
+
+---
+# ============================================================
+# SERVICE — открывает доступ к Redis внутри кластера
+# Воркеры обращаются по имени: redis-service:6379
+# ============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: default
+spec:
+  selector:
+    app: redis
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+  type: ClusterIP     # только внутри кластера
