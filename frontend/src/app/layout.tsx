@@ -46,6 +46,9 @@ export default function RootLayout({
                     <a href="/upload" className="text-gray-600 hover:text-gray-900 text-sm">
                         Upload
                     </a>
+                    <a href="/dashboard" className="text-gray-600 hover:text-gray-900 text-sm">
+                        My Documents
+                    </a>
                 </nav>
             </div>
         </header>
