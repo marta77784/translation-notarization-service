@@ -1,7 +1,7 @@
 # Translation Worker
 
 A self-contained Node.js worker that consumes translation jobs from a BullMQ
-queue, translates documents via OpenAI, and writes the results back to MinIO
+queue, translates documents via an LLM provider, and writes the results back to MinIO
 and MongoDB.
 
 See [`SPEC.md`](./SPEC.md) for the full contract.
@@ -19,7 +19,7 @@ docker compose up -d
 
 # 2. Configure env
 cp .env.example .env
-# edit .env and set OPENAI_API_KEY
+# edit .env and set LLM_API_KEY
 
 # 3. Install and run
 npm install
@@ -49,7 +49,7 @@ src/
   config.js             # env loading + Zod validation
   processor.js          # main job orchestrator
   extractors/           # text extraction by mime type
-  translator/           # chunking + OpenAI calls
+  translator/           # chunking + LLM calls
   composers/            # output file composition
   storage/              # MinIO + Mongo clients
   lib/                  # logger, custom errors

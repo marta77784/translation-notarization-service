@@ -4,7 +4,7 @@
 
 This is a worker service inside `translation-notarization-service` — a document translation and notarization platform. The full stack: Node.js + Next.js + MongoDB + Redis + MinIO + Stripe + Kubernetes (k3s).
 
-This worker handles the **translation** step: it consumes translation jobs from a Redis queue, downloads source documents from MinIO, translates the text via OpenAI, builds the translated file, uploads it back to MinIO, and updates the document status in MongoDB.
+This worker handles the **translation** step: it consumes translation jobs from a Redis queue, downloads source documents from MinIO, translates the text via an LLM provider (OpenAI-compatible Chat Completions API), builds the translated file, uploads it back to MinIO, and updates the document status in MongoDB.
 
 This worker is one piece of a multi-person team project. Other people are building the auth service, the document upload API, Stripe payments, the notary cabinet, the frontend, and Kubernetes deployment. **This worker must be self-contained** and communicate with the rest of the system only through the queue, MinIO, and MongoDB.
 
