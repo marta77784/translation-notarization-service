@@ -113,3 +113,19 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 export default router;
+
+// PATCH /api/documents/:id/notarize — кабинет нотариуса
+router.patch('/:id/notarize', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'notary') return res.status(403).json({ error: 'Notary role required' });
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      { status: 'notarized', updatedAt: new Date() },
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    res.json(doc);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
