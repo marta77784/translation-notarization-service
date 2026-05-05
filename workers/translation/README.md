@@ -54,6 +54,32 @@ Each case generates a fresh `documentId` (an ObjectId) by default — copy it
 from the log to inspect Mongo (`db.documents.findOne({_id: ObjectId('...')})`)
 or MinIO (`translations/<documentId>/translated.<ext>`).
 
+## Testing the DLQ
+
+Jobs that exhaust their 5 retries on a `TransientError` land in the
+`translation-dlq` queue (see [`SPEC-DLQ.md`](./SPEC-DLQ.md)). To force
+this path locally without touching real LLM credentials, point the LLM
+client at an unreachable host in `.env`:
+
+```bash
+LLM_BASE_URL=http://localhost:9999/v1
+```
+
+Enqueue any case (e.g. `npm run enqueue -- ru-txt-to-en-txt`). Every chunk
+will fail with a network error classified as `TransientError`; after all 5
+retries are exhausted, the job is pushed to `translation-dlq` and the
+document in Mongo is marked `failed`.
+
+Verify:
+
+```bash
+redis-cli LLEN bull:translation-dlq:wait    # DLQ entry count
+```
+
+Or use BullMQ Board for UI-friendly inspection. DLQ entries are not
+auto-cleaned — that is the point of the queue. Restore `LLM_BASE_URL`
+after testing.
+
 ## Docker
 
 ```bash

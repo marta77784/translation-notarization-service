@@ -1,11 +1,11 @@
-import { Worker } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { config } from './config.js';
 import { logger } from './lib/logger.js';
 import { ensureBuckets } from './storage/minio.js';
-import { connectMongo, closeMongo } from './storage/mongo.js';
+import { connectMongo, closeMongo, markFailed } from './storage/mongo.js';
 import { processJob } from './processor.js';
-import { QUEUE_NAME } from './queue.js';
+import { DLQ_NAME, QUEUE_NAME } from './queue.js';
 
 // Backoff per spec: 5_000 * 3^(attempts-1), capped at 5 minutes.
 // Producers must enqueue with `{ attempts, backoff: { type: 'custom' } }` for
@@ -40,6 +40,11 @@ async function main() {
     },
   });
 
+  // DLQ producer — no worker consumes this queue. Jobs that exhausted all
+  // retries on a TransientError are pushed here for operational visibility.
+  // See workers/translation/SPEC-DLQ.md.
+  const dlq = new Queue(DLQ_NAME, { connection });
+
   worker.on('completed', (job, result) => {
     logger.info(
       { jobId: job.id, result },
@@ -63,6 +68,47 @@ async function main() {
           { err: discardErr },
           'Failed to discard permanent-failure job',
         );
+      }
+    } else if (job && job.attemptsMade >= job.opts.attempts) {
+      // Transient failure, retries exhausted. Route to DLQ for operational
+      // visibility, then markFailed so the document isn't stuck in
+      // 'translating' forever. The two writes are independent — a failure in
+      // one must not drop the other.
+      const dlqPayload = {
+        originalJobId: job.id,
+        originalPayload: job.data,
+        error: {
+          name: err?.name,
+          message: err?.message,
+          stack: err?.stack,
+        },
+        attemptsMade: job.attemptsMade,
+        failedAt: new Date().toISOString(),
+        lastFailedQueue: QUEUE_NAME,
+      };
+
+      try {
+        await dlq.add('dead', dlqPayload);
+        log.warn(
+          { attemptsMade: job.attemptsMade },
+          'Job exhausted retries — pushed to DLQ',
+        );
+      } catch (dlqErr) {
+        log.error({ err: dlqErr }, 'Failed to push job to DLQ');
+      }
+
+      const documentId = job.data?.documentId;
+      if (!documentId) {
+        log.warn('Job missing documentId — skipping Mongo failed update');
+      } else {
+        try {
+          await markFailed(documentId, err?.message ?? 'Unknown error');
+        } catch (mongoErr) {
+          log.error(
+            { err: mongoErr },
+            'Failed to mark document failed in Mongo after DLQ',
+          );
+        }
       }
     }
   });
@@ -90,6 +136,7 @@ async function main() {
     logger.info({ signal }, 'Shutting down');
     try {
       await worker.close();
+      await dlq.close();
       await connection.quit();
       await closeMongo();
       logger.info('Shutdown complete');
