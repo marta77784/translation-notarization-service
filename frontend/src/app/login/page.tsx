@@ -16,9 +16,9 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const { token } = await login(email, password);
+      const { token, user } = await login(email, password);
       localStorage.setItem("token", token);
-      router.push("/dashboard");
+      router.push(user.role === "notary" ? "/notary" : "/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

@@ -16,7 +16,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export interface AuthResponse {
   token: string;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; role: string };
 }
 
 export interface Document {
@@ -53,6 +53,13 @@ export function uploadDocument(file: File, token: string) {
 
 export function getDocuments(token: string) {
   return request<Document[]>("/api/documents", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function notarizeDocument(id: string, token: string) {
+  return request<Document>(`/api/documents/${id}/notarize`, {
+    method: "PATCH",
     headers: { Authorization: `Bearer ${token}` },
   });
 }
