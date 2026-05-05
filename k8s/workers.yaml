@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workers
+  template:
+    metadata:
+      labels:
+        app: workers
+    spec:
+      containers:
+        - name: workers
+          image: ghcr.io/marta77784/translation-notarization-service/workers:latest
+          env:
+            - name: REDIS_URL
+              value: redis://redis:6379
+            - name: MONGO_URL
+              value: mongodb://mongodb:27017/translation
+            - name: MINIO_ENDPOINT
+              value: minio
+            - name: MINIO_PORT
+              value: "9000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers
+spec:
+  selector:
+    app: workers
+  ports:
+    - port: 3002
+      targetPort: 3002
