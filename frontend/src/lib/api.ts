@@ -56,3 +56,10 @@ export function getDocuments(token: string) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+export function notarizeDocument(id: string, token: string) {
+  return request<Document>(`/api/documents/${id}/notarize`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
