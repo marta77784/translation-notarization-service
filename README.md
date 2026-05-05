@@ -120,3 +120,13 @@ npx playwright test
 
 MIT 2026 - Translation and Notarization Service Team
 
+## 👥 Команда и роли
+
+| Участник | GitHub | Направление | Задачи |
+|----------|--------|-------------|--------|
+| Marta Dzekevich | [@marta77784](https://github.com/marta77784) | ☸️ Infra/DevOps | #1 #3 #18 #19 #20 |
+| Alex | [@alex-builds](https://github.com/alex-builds) | 🗄️ Backend API | #5 #6 #7 #8 #9 |
+| Yulia | [@yuliasteele](https://github.com/yuliasteele) | 🎨 Frontend | #10 #11 #12 #13 #29 |
+| Olesya | [@olessya2907](https://github.com/olessya2907) | 💳 Payments | #14 #16 #22 #30 #31 |
+| Vadim | [@vadim](https://github.com/vadim) | ⚙️ Workers | #15 #24 #25 #26 #27 |
+| Нурайым | [@nurayalybaeva-tech](https://github.com/nurayalybaeva-tech) | 🔧 Kubernetes + Тесты | #21 #23 #28 #32 #33 |
