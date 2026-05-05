@@ -1,19 +1,34 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { uploadDocument } from "@/lib/api";
 
 export default function UploadPage() {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFile(e.target.files?.[0] ?? null);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
-    // TODO: upload file to API
+    setError(null);
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token") ?? "";
+      await uploadDocument(file, token);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -79,12 +94,18 @@ export default function UploadPage() {
             </button>
           )}
 
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
-            disabled={!file}
+            disabled={!file || loading}
             className="bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Submit document
+            {loading ? "Uploading…" : "Submit document"}
           </button>
         </form>
       </div>
