@@ -1,15 +1,30 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { register } from "@/lib/api";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: connect to auth API
+    setError(null);
+    setLoading(true);
+    try {
+      const { token } = await register(name, email, password);
+      localStorage.setItem("token", token);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -71,11 +86,18 @@ export default function RegisterPage() {
             <p className="text-xs text-gray-400 mt-0.5">Minimum 8 characters.</p>
           </div>
 
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="mt-2 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+            disabled={loading}
+            className="mt-2 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Create account
+            {loading ? "Creating account…" : "Create account"}
           </button>
         </form>
 
