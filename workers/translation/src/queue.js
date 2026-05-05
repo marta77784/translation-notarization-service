@@ -5,6 +5,11 @@
 
 export const QUEUE_NAME = 'translation';
 
+// Dead Letter Queue for jobs that exhausted all retries on TransientError.
+// No worker consumes this queue and producers must not spread JOB_OPTIONS into
+// DLQ adds — entries are inspection-only storage, not retried work.
+export const DLQ_NAME = 'translation-dlq';
+
 export const MAX_ATTEMPTS = 5;
 
 /**
