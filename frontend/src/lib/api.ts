@@ -16,7 +16,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export interface AuthResponse {
   token: string;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; role: string };
 }
 
 export interface Document {
