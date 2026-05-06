@@ -1,7 +1,7 @@
 FROM node:20-alpine
 WORKDIR /app
-COPY backend/package*.json ./
+COPY package*.json ./
 RUN npm install --production
-COPY backend/src ./src
+COPY src ./src
 EXPOSE 4001
 CMD ["node", "src/index.js"]

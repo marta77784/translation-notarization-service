@@ -2,13 +2,12 @@ import { Router } from 'express';
 import multer from 'multer';
 import { Client as MinioClient } from 'minio';
 import { Queue } from 'bullmq';
-import Redis from "ioredis";
+import Redis from 'ioredis';
 import Document from '../models/Document.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// Multer — принимает файл в память (до 20MB)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
@@ -19,7 +18,6 @@ const upload = multer({
   },
 });
 
-// MinIO клиент
 const minio = new MinioClient({
   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
   port: parseInt(process.env.MINIO_PORT || '9000'),
@@ -28,11 +26,9 @@ const minio = new MinioClient({
   secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
 });
 
-// Redis + BullMQ очередь — Producer для воркера Вадима
-const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', { maxRetriesPerRequest: null });
 const translationQueue = new Queue('translation', { connection: redisConnection });
 
-// POST /api/documents/upload
 router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
   try {
     const { sourceLang, targetLang, outputFormat } = req.body;
@@ -42,23 +38,10 @@ router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
     if (!sourceLang || !targetLang) return res.status(400).json({ error: 'sourceLang and targetLang are required' });
     if (sourceLang === targetLang) return res.status(400).json({ error: 'sourceLang and targetLang must differ' });
 
-    // Шаг 1: Сначала создаём документ в MongoDB со статусом pending
-    // ВАЖНО: воркер Вадима делает updateOne без upsert — документ должен существовать до джоба
-    const doc = await Document.create({
-      userId: req.user.id,
-      originalName: file.originalname,
-      sourceMimeType: file.mimetype,
-      sourceFileKey: '', // заполним после загрузки в MinIO
-      sourceLang,
-      targetLang,
-      outputFormat: outputFormat || 'pdf',
-    });
-
-    // Шаг 2: Загружаем файл в MinIO бакет uploads
-    const fileKey = `uploads/${doc._id}/${file.originalname}`;
+    const tempId = new Date().getTime();
+    const fileKey = `uploads/${tempId}/${file.originalname}`;
     const bucketName = process.env.MINIO_BUCKET_UPLOADS || 'uploads';
 
-    // Создаём бакет если не существует
     const bucketExists = await minio.bucketExists(bucketName);
     if (!bucketExists) await minio.makeBucket(bucketName);
 
@@ -66,12 +49,16 @@ router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
       'Content-Type': file.mimetype,
     });
 
-    // Шаг 3: Обновляем документ с ключом файла в MinIO
-    doc.sourceFileKey = fileKey;
-    await doc.save();
+    const doc = await Document.create({
+      userId: req.user.id,
+      originalName: file.originalname,
+      sourceMimeType: file.mimetype,
+      sourceFileKey: fileKey,
+      sourceLang,
+      targetLang,
+      outputFormat: outputFormat || 'pdf',
+    });
 
-    // Шаг 4: Ставим джоб в очередь для воркера Вадима
-    // Формат строго по SPEC.md — Producer contract
     await translationQueue.add(
       'translate',
       {
@@ -85,7 +72,7 @@ router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
       {
         attempts: 5,
         backoff: { type: 'custom' },
-        jobId: doc._id.toString(), // idempotency — один документ = один джоб
+        jobId: doc._id.toString(),
       }
     );
 
@@ -106,7 +93,6 @@ router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
   }
 });
 
-// GET /api/documents — список документов текущего пользователя
 router.get('/', requireAuth, async (req, res) => {
   try {
     const docs = await Document.find({ userId: req.user.id }).sort({ createdAt: -1 });
@@ -116,7 +102,6 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/documents/:id — статус конкретного документа
 router.get('/:id', requireAuth, async (req, res) => {
   try {
     const doc = await Document.findOne({ _id: req.params.id, userId: req.user.id });
@@ -128,3 +113,19 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 export default router;
+
+// PATCH /api/documents/:id/notarize — кабинет нотариуса
+router.patch('/:id/notarize', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'notary') return res.status(403).json({ error: 'Notary role required' });
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      { status: 'notarized', updatedAt: new Date() },
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    res.json(doc);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
