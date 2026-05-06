@@ -1,8 +1,11 @@
 const BASE_URL = "http://localhost:4001";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const isFormData = options?.body instanceof FormData;
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: isFormData
+      ? options?.headers
+      : { "Content-Type": "application/json", ...options?.headers },
     ...options,
   });
 
