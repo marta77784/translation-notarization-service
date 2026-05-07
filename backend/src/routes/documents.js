@@ -148,3 +148,22 @@ router.patch('/internal/:id/mark-paid', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// GET /api/documents/:id/download — presigned URL для скачивания переведённого файла
+router.get('/:id/download', requireAuth, async (req, res) => {
+  try {
+    const doc = await Document.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    if (!doc.translatedFileKey) return res.status(400).json({ error: 'Document not translated yet' });
+
+    const url = await minio.presignedGetObject(
+      process.env.MINIO_BUCKET_TRANSLATIONS || 'translations',
+      doc.translatedFileKey,
+      24 * 60 * 60 // ссылка действительна 24 часа
+    );
+
+    res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
