@@ -77,3 +77,9 @@ export function notarizeDocument(id: string, token: string) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+export function getDocumentDownloadUrl(id: string, token: string) {
+  return request<{ url: string }>(`/api/documents/${id}/download`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
