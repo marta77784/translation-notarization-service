@@ -12,7 +12,7 @@ const createCheckoutSession = async (documentId, amount, customerEmail) => {
             name: "Document Translation + Notarization",
             description: `Document ID: ${documentId}`,
           },
-          unit_amount: amount * 100,
+          unit_amount: amount,
         },
         quantity: 1,
       },

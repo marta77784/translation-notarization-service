@@ -1,43 +1,46 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { getDocuments, Document } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getDocuments, createPaymentSession, Document } from "@/lib/api";
 
 type OrderStatus =
-  | "uploaded"
+  | "pending"
   | "paid"
   | "translating"
   | "translated"
   | "notarizing"
   | "notarized"
-  | "done";
+  | "failed";
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
-  uploaded: "Uploaded",
+  pending: "Pending",
   paid: "Paid",
   translating: "Translating",
   translated: "Translated",
   notarizing: "Notarizing",
   notarized: "Notarized",
-  done: "Done",
+  failed: "Failed",
 };
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
-  uploaded: "bg-gray-100 text-gray-600",
+  pending: "bg-gray-100 text-gray-600",
   paid: "bg-blue-100 text-blue-700",
   translating: "bg-yellow-100 text-yellow-700",
   translated: "bg-indigo-100 text-indigo-700",
   notarizing: "bg-orange-100 text-orange-700",
   notarized: "bg-purple-100 text-purple-700",
-  done: "bg-green-100 text-green-700",
+  failed: "bg-red-100 text-red-700",
 };
 
 export default function DashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const paymentStatus = searchParams.get("payment");
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -51,6 +54,18 @@ export default function DashboardPage() {
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load documents"))
       .finally(() => setLoading(false));
   }, [router]);
+
+  async function handlePay(documentId: string) {
+    setPayingId(documentId);
+    try {
+      const email = localStorage.getItem("email") ?? "";
+      const { url } = await createPaymentSession(documentId, email);
+      window.location.href = url;
+    } catch {
+      setError("Failed to start payment. Please try again.");
+      setPayingId(null);
+    }
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
@@ -66,6 +81,17 @@ export default function DashboardPage() {
           + Upload new document
         </a>
       </div>
+
+      {paymentStatus === "success" && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700 font-medium">
+          Payment successful! Your document is being processed.
+        </div>
+      )}
+      {paymentStatus === "cancelled" && (
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-sm text-yellow-700 font-medium">
+          Payment was cancelled. You can try again anytime.
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -110,6 +136,15 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
+                      {status === "pending" && (
+                        <button
+                          onClick={() => handlePay(doc._id)}
+                          disabled={payingId === doc._id}
+                          className="bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {payingId === doc._id ? "Redirecting…" : "Pay $29.99"}
+                        </button>
+                      )}
                       {status === "done" && (
                         <button
                           className="text-blue-600 hover:text-blue-800 text-xs font-semibold flex items-center gap-1 ml-auto"
