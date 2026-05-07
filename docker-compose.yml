@@ -16,6 +16,7 @@ services:
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET_UPLOADS: uploads
       FRONTEND_URL: http://localhost:3000
+      SERVICE_SECRET: internal_secret_change_in_production
     depends_on:
       - mongo
       - redis

@@ -95,7 +95,10 @@ router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
 
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const docs = await Document.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    const query = req.user.role === 'notary'
+      ? { status: 'notarizing' }
+      : { userId: req.user.id };
+    const docs = await Document.find(query).sort({ createdAt: -1 });
     res.json(docs);
   } catch (err) {
     res.status(500).json({ error: err.message });

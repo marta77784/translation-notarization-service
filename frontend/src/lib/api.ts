@@ -25,8 +25,9 @@ export interface AuthResponse {
 
 export interface Document {
   _id: string;
-  fileName: string;
+  originalName: string;
   status: string;
+  progress: number;
   createdAt: string;
 }
 
