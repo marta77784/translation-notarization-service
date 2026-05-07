@@ -46,7 +46,16 @@ router.post(
       const session = event.data.object;
       const documentId = session.metadata.documentId;
       console.log(`✅ Payment successful for document: ${documentId}`);
-      // Позже здесь добавим: обновить статус документа в MongoDB → отправить в очередь
+
+      const backendUrl = process.env.BACKEND_URL || "http://localhost:4001";
+      await fetch(`${backendUrl}/api/documents/internal/${documentId}/mark-paid`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-service-secret": process.env.SERVICE_SECRET || "",
+        },
+        body: JSON.stringify({ stripeSessionId: session.id }),
+      });
     }
 
     res.json({ received: true });
