@@ -1,0 +1,100 @@
+# k8s/translation-worker.yaml
+# Translation Worker — BullMQ consumer.
+# No HTTP listener, therefore no Service is declared (worker pulls jobs from Redis).
+#
+# Image is built from workers/translation/Dockerfile and pushed by CI to GHCR.
+# Coordinate the image tag with Marta if her existing CI publishes a different name.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: translation-worker-config
+  namespace: default
+data:
+  # Redis (BullMQ)
+  REDIS_URL: "redis://redis:6379"
+
+  # MongoDB
+  # NOTE: backend's .env.example has MONGO_DB=translation_notarization, but
+  # k8s/workers.yaml from Nyura points at /translation. Keep it aligned with whatever
+  # backend actually uses — confirm with Marta/Alex before applying.
+  MONGO_URL: "mongodb://mongodb:27017"
+  MONGO_DB: "translation"
+
+  # MinIO
+  MINIO_ENDPOINT: "minio"
+  MINIO_PORT: "9000"
+  MINIO_USE_SSL: "false"
+  MINIO_BUCKET_UPLOADS: "uploads"
+  MINIO_BUCKET_TRANSLATIONS: "translations"
+
+  # Worker
+  WORKER_CONCURRENCY: "2"
+  LOG_LEVEL: "info"
+
+  # LLM provider — points at in-cluster Ollama (k8s/ollama.yaml).
+  # To fall back to Groq during the demo: change LLM_BASE_URL and LLM_MODEL here
+  # and set LLM_API_KEY in the Secret below — no image rebuild required.
+  LLM_BASE_URL: "http://ollama:11434/v1"
+  LLM_MODEL: "qwen2.5:0.5b"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: translation-worker-secrets
+  namespace: default
+type: Opaque
+stringData:
+  # Ollama ignores the API key but the OpenAI-compatible client requires a non-empty value.
+  LLM_API_KEY: "ollama"
+  # MinIO defaults — replace with real values via:
+  #   kubectl create secret generic translation-worker-secrets \
+  #     --from-literal=LLM_API_KEY=... --from-literal=MINIO_ACCESS_KEY=... \
+  #     --from-literal=MINIO_SECRET_KEY=... --dry-run=client -o yaml | kubectl apply -f -
+  MINIO_ACCESS_KEY: "minioadmin"
+  MINIO_SECRET_KEY: "minioadmin"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: translation-worker
+  namespace: default
+  labels:
+    app: translation-worker
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0       # never drop below current capacity during rollout
+  selector:
+    matchLabels:
+      app: translation-worker
+  template:
+    metadata:
+      labels:
+        app: translation-worker
+    spec:
+      # src/index.js implements graceful shutdown — give in-flight jobs time to finish.
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: worker
+          # Image is built and pushed manually by Marta (no CI yet).
+          # Build cmd: see PR description / k8s/README.md.
+          # Per-service image (rather than monolithic workers:latest) — notarization-worker
+          # will need its own, and we don't want one image to grow into a god-container.
+          image: ghcr.io/marta77784/translation-notarization-service/translation-worker:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: translation-worker-config
+            - secretRef:
+                name: translation-worker-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "200Mi"
+            limits:
+              cpu: "500m"
+              memory: "500Mi"
