@@ -7,6 +7,7 @@ const {
   signDocument,
   getDocumentById,
 } = require("./notarizationService");
+const { sendNotaryEmail, sendClientEmail } = require("./emailService");
 
 // Middleware — проверяет что пользователь залогинен и имеет роль notary
 const authNotary = (req, res, next) => {
@@ -75,7 +76,8 @@ router.post("/sign/:documentId", authNotary, async (req, res) => {
     console.log(
       `✅ Document ${req.params.documentId} signed by notary ${req.user.id}`,
     );
-    // Позже здесь добавим: отправить email клиенту (issue #30)
+    // Отправляем email клиенту что документ готов
+    await sendClientEmail(req.user.email, req.params.documentId);
 
     res.json({ message: "Document successfully notarized", document });
   } catch (error) {
