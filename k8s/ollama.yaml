@@ -1,3 +1,23 @@
+# ============================================================================
+# DISABLED — DO NOT APPLY ON CURRENT 2GB VDS.
+#
+# This manifest deploys Ollama in-cluster for self-hosted LLM inference.
+# It was tested with qwen2.5:1.5b but doesn't fit on the current 2GB VDS:
+# scheduler returns "Insufficient memory" because Ollama requests 1200Mi
+# while other services (backend, frontend, mongodb, redis, minio, 2x worker)
+# already consume most of the available RAM.
+#
+# Worker is currently configured to use Groq (managed LLM provider) — see
+# k8s/translation-worker.yaml ConfigMap.
+#
+# To re-enable Ollama:
+#   1. Provision a VDS with >= 4GB RAM
+#   2. Apply this manifest: kubectl apply -f k8s/ollama.yaml
+#   3. Switch worker back to Ollama: edit ConfigMap in translation-worker.yaml:
+#        LLM_BASE_URL: "http://ollama:11434/v1"
+#        LLM_MODEL: "qwen2.5:1.5b"
+#      and update LLM_API_KEY secret to "ollama" (any non-empty string).
+# ============================================================================
 # k8s/ollama.yaml
 # Ollama (LLM inference) for translation-worker.
 # Model: qwen2.5:1.5b — ~400 MiB on disk, ~600-700 MiB at inference time on CPU.
