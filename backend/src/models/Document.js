@@ -4,9 +4,9 @@ const documentSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   originalName: { type: String, required: true },
   sourceMimeType: { type: String, required: true },
-  sourceFileKey: { type: String, required: true }, // путь в MinIO бакете uploads
-  sourceLang: { type: String, enum: ['ru', 'en'], required: true },
-  targetLang: { type: String, enum: ['ru', 'en'], required: true },
+  sourceFileKey: { type: String, required: false }, // путь в MinIO бакете uploads
+  sourceLang: { type: String, enum: ['ru', 'en', 'de', 'fr', 'es', 'it'], required: true },
+  targetLang: { type: String, enum: ['ru', 'en', 'de', 'fr', 'es', 'it'], required: true },
   outputFormat: { type: String, enum: ['pdf', 'docx', 'txt'], default: 'pdf' },
 
   // Статусы которые обновляет воркер Вадима

@@ -104,7 +104,7 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.get('/:id', requireAuth, async (req, res) => {
   try {
-    const doc = await Document.findOne({ _id: req.params.id, userId: req.user.id });
+    const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Document not found' });
     res.json(doc);
   } catch (err) {
@@ -152,7 +152,7 @@ router.patch('/internal/:id/mark-paid', async (req, res) => {
 // GET /api/documents/:id/download — presigned URL для скачивания переведённого файла
 router.get('/:id/download', requireAuth, async (req, res) => {
   try {
-    const doc = await Document.findOne({ _id: req.params.id, userId: req.user.id });
+    const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Document not found' });
     if (!doc.translatedFileKey) return res.status(400).json({ error: 'Document not translated yet' });
 
@@ -163,6 +163,17 @@ router.get('/:id/download', requireAuth, async (req, res) => {
     );
 
     res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/documents/notary/queue — все документы со статусом notarizing для нотариуса
+router.get('/notary/queue', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'notary') return res.status(403).json({ error: 'Notary role required' });
+    const docs = await Document.find({ status: 'notarizing' }).sort({ createdAt: -1 });
+    res.json(docs);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
