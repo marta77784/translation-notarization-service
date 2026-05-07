@@ -7,6 +7,8 @@ import { uploadDocument } from "@/lib/api";
 export default function UploadPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
+  const [sourceLang, setSourceLang] = useState("ru");
+  const [targetLang, setTargetLang] = useState("en");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -22,7 +24,7 @@ export default function UploadPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token") ?? "";
-      await uploadDocument(file, token);
+      await uploadDocument(file, token, sourceLang, targetLang);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -40,6 +42,31 @@ export default function UploadPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <div className="flex gap-4">
+            <div className="flex flex-col gap-1 flex-1">
+              <label className="text-sm font-medium text-gray-700">Source language</label>
+              <select
+                value={sourceLang}
+                onChange={(e) => setSourceLang(e.target.value)}
+                className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ru">Russian</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1 flex-1">
+              <label className="text-sm font-medium text-gray-700">Target language</label>
+              <select
+                value={targetLang}
+                onChange={(e) => setTargetLang(e.target.value)}
+                className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="en">English</option>
+                <option value="ru">Russian</option>
+              </select>
+            </div>
+          </div>
+
           <div
             onClick={() => inputRef.current?.click()}
             className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-300 rounded-xl p-10 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"

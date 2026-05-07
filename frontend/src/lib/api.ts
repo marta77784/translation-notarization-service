@@ -43,9 +43,11 @@ export function register(name: string, email: string, password: string) {
   });
 }
 
-export function uploadDocument(file: File, token: string) {
+export function uploadDocument(file: File, token: string, sourceLang: string, targetLang: string) {
   const form = new FormData();
   form.append("file", file);
+  form.append("sourceLang", sourceLang);
+  form.append("targetLang", targetLang);
 
   return request<Document>("/api/documents/upload", {
     method: "POST",
