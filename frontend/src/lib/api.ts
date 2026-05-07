@@ -25,8 +25,9 @@ export interface AuthResponse {
 
 export interface Document {
   _id: string;
-  fileName: string;
+  originalName: string;
   status: string;
+  progress: number;
   createdAt: string;
 }
 
@@ -74,6 +75,12 @@ export function createPaymentSession(documentId: string, customerEmail: string) 
 export function notarizeDocument(id: string, token: string) {
   return request<Document>(`/api/documents/${id}/notarize`, {
     method: "PATCH",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function getDocumentDownloadUrl(id: string, token: string) {
+  return request<{ url: string }>(`/api/documents/${id}/download`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 }

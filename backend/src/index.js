@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { connectMongo } from './config/mongo.js';
 import authRoutes from './routes/auth.js';
 import documentRoutes from './routes/documents.js';
+import internalRoutes from './routes/internal.js';
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/internal', internalRoutes);
 
 // Health check — Kubernetes использует этот эндпоинт чтобы проверить что сервер живой
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
