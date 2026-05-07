@@ -12,17 +12,17 @@ metadata:
   namespace: default
 data:
   # Redis (BullMQ)
-  REDIS_URL: "redis://redis:6379"
+  REDIS_URL: "redis://redis-service:6379"
 
   # MongoDB
   # NOTE: backend's .env.example has MONGO_DB=translation_notarization, but
   # k8s/workers.yaml from Nyura points at /translation. Keep it aligned with whatever
   # backend actually uses — confirm with Marta/Alex before applying.
-  MONGO_URL: "mongodb://mongodb:27017"
+  MONGO_URL: "mongodb://mongodb-service:27017"
   MONGO_DB: "translation"
 
   # MinIO
-  MINIO_ENDPOINT: "minio"
+  MINIO_ENDPOINT: "minio-service"
   MINIO_PORT: "9000"
   MINIO_USE_SSL: "false"
   MINIO_BUCKET_UPLOADS: "uploads"
