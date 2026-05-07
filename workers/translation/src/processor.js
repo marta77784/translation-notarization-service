@@ -14,6 +14,11 @@ import { extractText, SUPPORTED_MIMES } from './extractors/index.js';
 import { translateText } from './translator/index.js';
 import { compose, SUPPORTED_FORMATS } from './composers/index.js';
 
+// Languages supported by qwen2.5:1.5b at acceptable quality. Frontend dropdown
+// must match this list. To extend, ensure model handles the new language well
+// and that pdfkit-based PDF output is still rejected for non-Latin scripts.
+const SUPPORTED_LANGS = ['ru', 'en', 'de', 'fr', 'es', 'it'];
+
 const objectIdString = z
   .string()
   .refine((s) => ObjectId.isValid(s), {
@@ -25,8 +30,8 @@ const jobPayloadSchema = z
     documentId: objectIdString,
     sourceFileKey: z.string().min(1),
     sourceMimeType: z.enum(SUPPORTED_MIMES),
-    sourceLang: z.enum(['ru', 'en']),
-    targetLang: z.enum(['ru', 'en']),
+    sourceLang: z.enum(SUPPORTED_LANGS),
+    targetLang: z.enum(SUPPORTED_LANGS),
     outputFormat: z.enum(SUPPORTED_FORMATS),
   })
   .refine((d) => d.sourceLang !== d.targetLang, {
@@ -59,8 +64,9 @@ export async function processJob(job) {
     outputFormat,
   } = parsed.data;
 
-  // Cyrillic + PDF rejection — see the TODO in composers/pdf.js for what's
-  // needed to lift this restriction.
+  // Cyrillic + PDF rejection — pdfkit's built-in fonts don't support Cyrillic.
+  // Currently only `ru` is in SUPPORTED_LANGS that uses Cyrillic. If `uk`/`bg`/etc
+  // are added later, extend this guard. See TODO in composers/pdf.js.
   if (targetLang === 'ru' && outputFormat === 'pdf') {
     const message =
       'PDF output for Russian is not supported in MVP — use DOCX instead.';

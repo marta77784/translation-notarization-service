@@ -8,6 +8,14 @@
       "targetLang": "en",
       "outputFormat": "txt"
     },
+    "en-txt-to-ru-txt": {
+      "documentId": "auto",
+      "sourceFile": "fixtures/sample-en.txt",
+      "sourceMimeType": "text/plain",
+      "sourceLang": "en",
+      "targetLang": "ru",
+      "outputFormat": "txt"
+    },
     "ru-pdf-to-en-pdf": {
       "documentId": "auto",
       "sourceFile": "fixtures/sample-ru.pdf",
