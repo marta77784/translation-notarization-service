@@ -32,11 +32,12 @@ data:
   WORKER_CONCURRENCY: "2"
   LOG_LEVEL: "info"
 
-  # LLM provider — points at in-cluster Ollama (k8s/ollama.yaml).
-  # To fall back to Groq during the demo: change LLM_BASE_URL and LLM_MODEL here
-  # and set LLM_API_KEY in the Secret below — no image rebuild required.
-  LLM_BASE_URL: "http://ollama:11434/v1"
-  LLM_MODEL: "qwen2.5:1.5b"
+  # LLM provider — Groq (Llama 3.3 70B, free tier).
+  # In-cluster Ollama (k8s/ollama.yaml) was disabled because qwen2.5:1.5b
+  # requires ~1.2 GiB which doesn't fit alongside other services on a 2GB VDS.
+  # API key is provided via Secret (kubectl create secret generic translation-worker-secrets ...).
+  LLM_BASE_URL: "https://api.groq.com/openai/v1"
+  LLM_MODEL: "llama-3.3-70b-versatile"
 ---
 apiVersion: v1
 kind: Secret
