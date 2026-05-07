@@ -1,6 +1,6 @@
 # k8s/ollama.yaml
 # Ollama (LLM inference) for translation-worker.
-# Model: qwen2.5:0.5b — ~400 MiB on disk, ~600-700 MiB at inference time on CPU.
+# Model: qwen2.5:1.5b — ~400 MiB on disk, ~600-700 MiB at inference time on CPU.
 # First boot pulls the model into PVC; subsequent restarts are instant (no-op pull).
 ---
 apiVersion: v1
@@ -12,7 +12,7 @@ spec:
   accessModes: [ReadWriteOnce]
   resources:
     requests:
-      storage: 2Gi
+      storage: 3Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -51,7 +51,7 @@ spec:
                 if ollama list >/dev/null 2>&1; then break; fi
                 sleep 1
               done
-              ollama pull qwen2.5:0.5b
+              ollama pull qwen2.5:1.5b
               wait $SERVE_PID
           env:
             - name: OLLAMA_HOST
@@ -77,10 +77,10 @@ spec:
           resources:
             requests:
               cpu: "200m"
-              memory: "700Mi"
+              memory: "1200Mi"
             limits:
               cpu: "1500m"
-              memory: "1200Mi"
+              memory: "2Gi"
       volumes:
         - name: models
           persistentVolumeClaim:

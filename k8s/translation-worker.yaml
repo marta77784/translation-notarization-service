@@ -36,7 +36,7 @@ data:
   # To fall back to Groq during the demo: change LLM_BASE_URL and LLM_MODEL here
   # and set LLM_API_KEY in the Secret below — no image rebuild required.
   LLM_BASE_URL: "http://ollama:11434/v1"
-  LLM_MODEL: "qwen2.5:0.5b"
+  LLM_MODEL: "qwen2.5:1.5b"
 ---
 apiVersion: v1
 kind: Secret
@@ -80,11 +80,10 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: worker
-          # Image is built and pushed manually by Marta (no CI yet).
-          # Build cmd: see PR description / k8s/README.md.
-          # Per-service image (rather than monolithic workers:latest) — notarization-worker
-          # will need its own, and we don't want one image to grow into a god-container.
-          image: ghcr.io/marta77784/translation-notarization-service/translation-worker:latest
+          # Pushed manually to my GHCR namespace (no CI yet, agreed with Marta).
+          # Built with: docker buildx build --platform linux/amd64 --push -t <image> workers/translation
+          # Public package — no imagePullSecret required.
+          image: ghcr.io/vadimvovnenko/translation-worker:latest
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
@@ -94,7 +93,7 @@ spec:
           resources:
             requests:
               cpu: "100m"
-              memory: "200Mi"
+              memory: "256Mi"
             limits:
               cpu: "500m"
-              memory: "500Mi"
+              memory: "512Mi"
