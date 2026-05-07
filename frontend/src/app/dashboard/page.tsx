@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getDocuments, Document } from "@/lib/api";
+import { getDocuments, getDocumentDownloadUrl, Document } from "@/lib/api";
 
 type OrderStatus =
   | "uploaded"
@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -51,6 +52,19 @@ export default function DashboardPage() {
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load documents"))
       .finally(() => setLoading(false));
   }, [router]);
+
+  async function handleDownload(documentId: string) {
+    setDownloadingId(documentId);
+    try {
+      const token = localStorage.getItem("token") ?? "";
+      const { url } = await getDocumentDownloadUrl(documentId, token);
+      window.open(url, "_blank");
+    } catch {
+      setError("Failed to download. Please try again.");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
@@ -110,10 +124,11 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {status === "done" && (
+                      {status === "notarized" && (
                         <button
-                          className="text-blue-600 hover:text-blue-800 text-xs font-semibold flex items-center gap-1 ml-auto"
-                          onClick={() => {/* TODO: trigger file download */}}
+                          className="text-blue-600 hover:text-blue-800 text-xs font-semibold flex items-center gap-1 ml-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => handleDownload(doc._id)}
+                          disabled={downloadingId === doc._id}
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -129,7 +144,7 @@ export default function DashboardPage() {
                               d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
                             />
                           </svg>
-                          Download
+                          {downloadingId === doc._id ? "Downloading…" : "Download"}
                         </button>
                       )}
                     </td>
