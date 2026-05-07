@@ -1,7 +1,7 @@
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const createCheckoutSession = async (documentId, amount, customerEmail) => {
-  const session = await stripe.checkout.sessions.create({
+  return stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     customer_email: customerEmail,
     line_items: [
@@ -12,7 +12,7 @@ const createCheckoutSession = async (documentId, amount, customerEmail) => {
             name: "Document Translation + Notarization",
             description: `Document ID: ${documentId}`,
           },
-          unit_amount: amount * 100,
+          unit_amount: amount,
         },
         quantity: 1,
       },
@@ -24,8 +24,6 @@ const createCheckoutSession = async (documentId, amount, customerEmail) => {
       documentId: documentId,
     },
   });
-
-  return session;
 };
 
 module.exports = { createCheckoutSession };

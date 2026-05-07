@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadDocument } from "@/lib/api";
 
@@ -11,8 +11,6 @@ export default function UploadPage() {
   const [targetLang, setTargetLang] = useState("en");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFile(e.target.files?.[0] ?? null);
   }
@@ -67,8 +65,8 @@ export default function UploadPage() {
             </div>
           </div>
 
-          <div
-            onClick={() => inputRef.current?.click()}
+          <label
+            htmlFor="file-input"
             className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-300 rounded-xl p-10 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
           >
             <svg
@@ -103,18 +101,18 @@ export default function UploadPage() {
             )}
 
             <input
-              ref={inputRef}
+              id="file-input"
               type="file"
               accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={handleFileChange}
               className="hidden"
             />
-          </div>
+          </label>
 
           {file && (
             <button
               type="button"
-              onClick={() => { setFile(null); if (inputRef.current) inputRef.current.value = ""; }}
+              onClick={() => { setFile(null); (document.getElementById("file-input") as HTMLInputElement).value = ""; }}
               className="text-xs text-gray-400 hover:text-red-500 transition-colors text-center -mt-3"
             >
               Remove file
