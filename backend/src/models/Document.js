@@ -12,7 +12,7 @@ const documentSchema = new mongoose.Schema({
   // Статусы которые обновляет воркер Вадима
   status: {
     type: String,
-    enum: ['pending', 'translating', 'translated', 'notarizing', 'notarized', 'failed'],
+    enum: ['pending', 'translating', 'translated', 'notarizing', 'notarized', 'paid', 'failed'],
     default: 'pending',
   },
   progress: { type: Number, default: 0 },

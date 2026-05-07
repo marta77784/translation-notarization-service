@@ -129,3 +129,22 @@ router.patch('/:id/notarize', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// PATCH /api/documents/internal/:id/mark-paid — вызывается payment-сервисом после Stripe
+router.patch('/internal/:id/mark-paid', async (req, res) => {
+  try {
+    const secret = req.headers['x-service-secret'];
+    if (secret !== process.env.SERVICE_SECRET) {
+      return res.status(403).json({ error: 'Invalid service secret' });
+    }
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      { status: 'paid', paid: true, updatedAt: new Date() },
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    res.json(doc);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
